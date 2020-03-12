@@ -1,0 +1,35 @@
+From 909f43b5ef83b42aed20b005cc272cd5d50e7f76 Mon Sep 17 00:00:00 2001
+From: David Howells <dhowells@redhat.com>
+Date: Thu, 29 Jan 2015 12:02:31 +0000
+Subject: [PATCH 04/10] Apparmor: Use d_is_positive/negative() rather than
+ testing dentry->d_inode
+
+Use d_is_positive(dentry) or d_is_negative(dentry) rather than testing
+dentry->d_inode as the dentry may cover another layer that has an inode when
+the top layer doesn't or may hold a 0,0 chardev that's actually a whiteout.
+
+Signed-off-by: David Howells <dhowells@redhat.com>
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+(cherry picked from commit 729b8a3dee2bc873e4647e9384de9111548e599e)
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+Signed-off-by: BirdZhang <0312birdzhang@gmail.com>
+---
+ security/apparmor/path.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/security/apparmor/path.c b/security/apparmor/path.c
+index bcdf7bb7..6cea2a6a 100644
+--- a/security/apparmor/path.c
++++ b/security/apparmor/path.c
+@@ -158,7 +158,7 @@ static int d_namespace_path(struct path *path, char *buf, char **name,
+ 	 *    security_path hooks as a deleted dentry except without an inode
+ 	 *    allocated.
+ 	 */
+-	if (d_unlinked(path->dentry) && path->dentry->d_inode &&
++	if (d_unlinked(path->dentry) && d_is_positive(path->dentry) &&
+ 	    !(flags & PATH_MEDIATE_DELETED)) {
+ 			error = -ENOENT;
+ 			goto out;
+-- 
+2.17.1
+

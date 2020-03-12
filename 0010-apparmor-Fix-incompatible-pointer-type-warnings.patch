@@ -1,0 +1,48 @@
+From 4ddf90f8147e24ef65079733b5ff7f93a0516f22 Mon Sep 17 00:00:00 2001
+From: BirdZhang <0312birdzhang@gmail.com>
+Date: Wed, 10 Apr 2019 11:33:28 +0800
+Subject: [PATCH 10/10] apparmor:Fix incompatible pointer type warnings
+
+Change-Id: I4c601ee92a8d124c2e425db5d590aabf017658d4
+---
+ security/apparmor/af_unix.c | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/security/apparmor/af_unix.c b/security/apparmor/af_unix.c
+index 62e7fd14..cd08018f 100644
+--- a/security/apparmor/af_unix.c
++++ b/security/apparmor/af_unix.c
+@@ -21,12 +21,17 @@
+ #include "include/path.h"
+ #include "include/policy.h"
+ 
++static inline struct sock *aa_sock(struct unix_sock *u)
++{
++	return &u->sk;
++}
++
+ static inline int unix_fs_perm(int op, u32 mask, struct aa_label *label,
+ 			       struct unix_sock *u, int flags)
+ {
+ 	AA_BUG(!label);
+ 	AA_BUG(!u);
+-	AA_BUG(!UNIX_FS(u));
++	AA_BUG(!UNIX_FS(aa_sock(u)));
+ 
+ 	if (unconfined(label) || !LABEL_MEDIATES(label, AA_CLASS_FILE))
+ 		return 0;
+@@ -526,9 +531,9 @@ int aa_unix_peer_perm(struct aa_label *label, int op, u32 request,
+ 	AA_BUG(!sk);
+ 	AA_BUG(!peer_sk);
+ 
+-	if (UNIX_FS(peeru))
++	if (UNIX_FS(aa_sock(peeru)))
+ 		return unix_fs_perm(op, request, label, peeru, 0);
+-	else if (UNIX_FS(u))
++	else if (UNIX_FS(aa_sock(u)))
+ 		return unix_fs_perm(op, request, label, u, 0);
+ 	else {
+ 		struct aa_profile *profile;
+-- 
+2.17.1
+
